@@ -332,7 +332,6 @@ app.post('/create-session', async (req, res) => {
             "udf2": scenario.udf2,
             "udf3": scenario.udf3,
             "udf6": navToken,
-            "udf10": scenario.udf10,
             "merchant_session_identifier": navToken,
             "metadata.NAVITAIRE:session_expiry_in_sec": "900",
             "metadata.disable_merchant_integrity_check": scenario.integrity,
