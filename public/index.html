@@ -52,7 +52,8 @@
             { code: "KUL", name: "Kuala Lumpur (KUL)" },
             { code: "SIN", name: "Singapore (SIN)" },
             { code: "CEB", name: "Cebu (CEB)" },
-            { code: "MEL", name: "Melbourne (MEL)" }
+            { code: "MEL", name: "Melbourne (MEL)" },
+            { code: "ENI", name: "El Nido (ENI)" }
         ];
 
         const HOTEL_OPTIONS = [
@@ -313,14 +314,15 @@
                 }
                 if (search.from === 'MNL' && search.to === 'SUG') return '$190';
                 if (search.from === 'SIN' && search.to === 'MNL') return '₱64,064';
-                if (search.from === 'MNL' && search.to === 'LAO') return '$110';
+                if (search.from === 'MNL' && search.to === 'LAO') return 'S$110';
                 if (search.from === 'MNL' && search.to === 'KUL') return '$225';
-                if (search.from === 'MNL' && search.to === 'SIN') return '$340';
+                if (search.from === 'MNL' && search.to === 'SIN') return 'S$340';
                 if (search.from === 'RUH' && search.to === 'MNL') return '₹27,000';
                 if (search.from === 'MEL' && search.to === 'CEB') return '₱14,225';
                 if (search.from === 'ENI' && search.to === 'MNL') return '₱6,000';
                 if (search.from === 'PVG' && search.to === 'MEL') return '$2,500';
                 if (search.from === 'CEB' && search.to === 'MNL') return '₫18,000';
+                if (search.from === 'CEB' && search.to === 'ENI') return '₱8,000';
                 return '$2,000';
             };
 
