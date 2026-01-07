@@ -373,8 +373,7 @@ app.post('/create-session', async (req, res) => {
       headers: { 'Authorization': JUSPAY_AUTH, 'Content-Type': 'application/json' }
     });
 
-    const paymentUrl = response.data.payment_links.iframe || response.data.payment_links.web;
-    res.json({ url: paymentUrl, sentPayload: payload });
+    res.json({ url: response.data.payment_links.web, sentPayload: payload });
   } catch (error) {
     console.error("❌ ERROR:", error.response?.data || error.message);
     res.status(500).json({ error: error.message });
