@@ -108,7 +108,7 @@
             };
 
             const logApiCall = (endpoint, method, req, res) => {
-                const newLog = { id: Date.now(), timestamp: new Date().toLocaleTimeString(), endpoint, method, request: req, response: res };
+                const newLog = { id: Date.now() + Math.random(), timestamp: new Date().toLocaleTimeString(), endpoint, method, request: req, response: res };
                 setApiLogs(prevLogs => {
                     const updatedLogs = [...prevLogs, newLog];
                     sessionStorage.setItem('flight_demo_logs', JSON.stringify(updatedLogs));
@@ -180,6 +180,34 @@
                     logApiCall('https://sandbox.juspay.in/ecr/orders/...', 'GET', { order_id: orderIdVal }, data);
 
                     if (data.status === "CHARGED" || data.status === "AUTHORIZED" || data.status === "TO_BE_CHARGED" || data.status === "PARTIAL_CHARGED") {
+                        
+                        // --- OFFER LOGGING LOGIC START ---
+                        if (data.txn_detail && data.txn_detail.txn_amount_breakup) {
+                            const offerObj = data.txn_detail.txn_amount_breakup.find(item => item.name === 'OFFER');
+                            
+                            if (offerObj) {
+                                // 1. Log Promotion API
+                                logApiCall(
+                                    'https://api.navitaire/api/nsk/v1/booking/promotion',
+                                    'POST',
+                                    { "promotionCode": "NAV10A" },
+                                    { "data": null }
+                                );
+
+                                // 2. Log Review Summary API
+                                const balanceDue = data.amount || data.txn_detail.net_amount; 
+                                const totalDiscount = offerObj.amount;
+                                
+                                logApiCall(
+                                    'https://api.navitaire/v1/reviewsummary/getpricesummary',
+                                    'POST',
+                                    { "token": "JWT_NAV_..." }, // Placeholder or actual token if stored
+                                    { "balanceDue": balanceDue, "totalDiscount": totalDiscount }
+                                );
+                            }
+                        }
+                        // --- OFFER LOGGING LOGIC END ---
+
                         handleSuccessChain(airlineName, pnrVal, orderIdVal);
                     } else {
                         // FAILURE
