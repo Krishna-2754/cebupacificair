@@ -96,7 +96,6 @@
             animation: spin 1s linear infinite;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
     </style>
 </head>
 
@@ -139,15 +138,11 @@
         const LANGUAGE_OPTIONS = [{ code: "en", name: "English" }, { code: "ja", name: "Japanese" }, { code: "ko", name: "Korean" }, { code: "zh", name: "Mandarin" }];
 
         function App() {
-            // --- FIX START: Lazy State Initialization ---
-            // We parse URL params immediately to set the initial state, preventing the 'Launcher' flash.
+            // --- Lazy State Initialization ---
             const urlParams = new URLSearchParams(window.location.search);
             const isReturningSuccess = urlParams.get('status') === 'success';
 
-            // If returning, set view to 'processing' immediately, otherwise 'launcher'
             const [view, setView] = useState(isReturningSuccess ? 'processing' : 'launcher');
-            
-            // If returning, populate airline immediately so loading screens look correct
             const [airline, setAirline] = useState(() => {
                 if(isReturningSuccess) {
                     const name = urlParams.get('airline');
@@ -157,9 +152,7 @@
                 return null;
             });
 
-            // If returning, start with a loading message
             const [loadingStage, setLoadingStage] = useState(isReturningSuccess ? "Verifying Payment Status..." : "");
-            // --- FIX END ---
 
             const [navToken, setNavToken] = useState("");
             const [isSearched, setIsSearched] = useState(false);
@@ -213,11 +206,10 @@
 
             // --- RESTART LOGIC ---
             const handleRestart = () => {
-                // Clear URL params without reloading
                 window.history.pushState({}, document.title, window.location.pathname);
                 setIsSearched(false);
-                setAirline(null); // Reset airline
-                setView('launcher'); // Go back to launcher
+                setAirline(null);
+                setView('launcher');
                 setPnr("");
                 setOrderId("");
             };
@@ -227,7 +219,6 @@
                 const params = new URLSearchParams(window.location.search);
                 if (params.get('status') === 'success') {
 
-                    // 1. RESTORE SELECTED FLIGHT/HOTEL FROM STORAGE
                     const savedState = JSON.parse(sessionStorage.getItem('juspay_demo_state'));
                     if (savedState) {
                         setSearch(savedState.search);
@@ -239,7 +230,6 @@
                     const orderIdFromUrl = params.get('order_id');
                     const airlineName = params.get('airline');
                     
-                    // Note: We already set initial state in useState, but we update it here just in case
                     const matched = Object.values(AIRLINE_CONFIGS).find(a => a.name === airlineName);
                     if(matched) setAirline(matched);
 
@@ -261,15 +251,11 @@
                     });
 
                     const data = await res.json();
-
-                    // Log the status check
                     logApiCall('https://sandbox.juspay.in/ecr/orders/...', 'GET', { order_id: orderIdVal }, data);
 
                     if (data.status === "CHARGED" || data.status === "AUTHORIZED" || data.status === "TO_BE_CHARGED" || data.status === "PARTIAL_CHARGED") {
-                         // --- OFFER LOGGING LOGIC START ---
                          if (data.txn_detail && data.txn_detail.txn_amount_breakup) {
                             const offerObj = data.txn_detail.txn_amount_breakup.find(item => item.name === 'OFFER');
-
                             if (offerObj) {
                                 logApiCall('https://api.navitaire/api/nsk/v1/booking/promotion', 'POST', { "promotionCode": "NAV10A" }, { "data": null });
                                 const balanceDue = data.amount || data.txn_detail.net_amount;
@@ -277,10 +263,8 @@
                                 logApiCall('https://api.navitaire/v1/reviewsummary/getpricesummary', 'POST', { "token": "JWT_NAV_..." }, { "balanceDue": balanceDue, "totalDiscount": totalDiscount });
                             }
                         }
-                        // --- OFFER LOGGING LOGIC END ---
                         handleSuccessChain(airlineName, pnrVal, orderIdVal);
                     } else {
-                        // FAILURE
                         setLoadingStage("");
                         setFailureReason({
                             status: data.status || "UNKNOWN",
@@ -301,14 +285,10 @@
             const handleSuccessChain = async (name, confirmedPnr, currentOrderId) => {
                 const matched = Object.values(AIRLINE_CONFIGS).find(a => a.name === name);
                 setAirline(matched || AIRLINE_CONFIGS.cebu);
-                // Note: We keep view as 'processing' or 'airline' while loading overlays are active
-                // We only set 'success' at the very end
                 setLoadingStage("Syncing Booking...");
 
-                // 1. Create Booking (Original)
                 await fetch('/api/nsk/v3/booking', { method: 'POST' });
 
-                // 2. Add Payment (Added with Mock Data)
                 const paymentReq = {
                     "amount": 2147483647,
                     "paymentFields": { "additionalProp1": "string", "additionalProp2": "string", "additionalProp3": "string" },
@@ -326,7 +306,6 @@
                 });
                 logApiCall('/api/nsk/v5/booking/payments', 'POST', paymentReq, { "data": "string", "messages": [] });
 
-                // 3. Put Commit Call
                 const commitReq = {
                     "receivedBy": "string",
                     "restrictionOverride": true,
@@ -344,7 +323,6 @@
                 });
                 logApiCall('/api/nsk/v3/booking', 'PUT', commitReq, { "data": null });
 
-                // 4. Fulfillment
                 if (currentOrderId) {
                     setLoadingStage("Confirming Payment...");
                     const fulfillReq = { order_id: currentOrderId, pnr: confirmedPnr };
@@ -359,7 +337,7 @@
                 }
 
                 setLoadingStage("");
-                setView('success'); // NOW we show the success screen
+                setView('success');
             };
 
             const handleSearch = async () => {
@@ -372,7 +350,6 @@
             const handlePay = async () => {
                 setLoadingStage("Securing Session...");
 
-                // --- SAVE STATE BEFORE REDIRECT ---
                 sessionStorage.setItem('juspay_demo_state', JSON.stringify({
                     search: search,
                     category: category,
@@ -421,7 +398,6 @@
             };
 
             // --- LOADING OVERLAY COMPONENT ---
-            // Used for both the 'airline' view overlay AND the dedicated 'processing' view
             const LoadingOverlay = () => (
                 <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex flex-col items-center justify-center text-white animate-in">
                     <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-6"></div>
@@ -429,11 +405,9 @@
                 </div>
             );
 
-            // --- PROCESSING VIEW (New interim state) ---
-            // This prevents the Launcher or Search form from flashing while verification happens
+            // --- PROCESSING VIEW ---
             if (view === 'processing') return (
                 <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900 text-white relative">
-                    {/* Optional: Show airline logo if available in URL params */}
                     {airline && <img src={airline.logo} style={{ height: airline.logoH }} className="mb-10 opacity-50 grayscale" />}
                     <LoadingOverlay />
                 </div>
@@ -551,6 +525,7 @@
                                         </div>
 
                                         <div className="grid grid-cols-2 gap-8 pt-6 border-t border-slate-100">
+                                            {/* Row 1 */}
                                             <div>
                                                 <div className="text-xs text-slate-400 font-bold uppercase tracking-widest mb-1">Date</div>
                                                 <div className="font-bold text-slate-800">{new Date(search.date).toDateString()}</div>
@@ -559,7 +534,18 @@
                                                 <div className="text-xs text-slate-400 font-bold uppercase tracking-widest mb-1">Payment ID</div>
                                                 <div className="font-bold text-slate-800">{orderId || "PENDING"}</div>
                                             </div>
+
+                                            {/* Row 2 (Added) */}
+                                            <div>
+                                                <div className="text-xs text-slate-400 font-bold uppercase tracking-widest mb-1">Customer Email</div>
+                                                <div className="font-bold text-slate-800">test@gmail.com</div>
+                                            </div>
+                                            <div className="text-right">
+                                                <div className="text-xs text-slate-400 font-bold uppercase tracking-widest mb-1">Customer ID</div>
+                                                <div className="font-bold text-slate-800">Test123</div>
+                                            </div>
                                         </div>
+
                                          <div className="mt-8 pt-6 border-t border-slate-100 flex justify-end">
                                             <button onClick={handleRestart} className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-blue-600 hover:text-blue-800 transition-colors">
                                                 <span>+ Book Another Flight</span>
