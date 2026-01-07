@@ -141,11 +141,15 @@
             // =================================================================
             // 1. IFRAME BREAKER LOGIC (CRITICAL FOR EMBEDDED FLOW)
             // =================================================================
+            // If this React App is loaded inside an iframe (because Juspay redirected 
+            // the iframe back to return_url), and we have a status, we must 
+            // Break Out to the parent window.
             if (window.self !== window.top) {
                 const innerParams = new URLSearchParams(window.location.search);
                 if (innerParams.get('status')) {
                     // Force parent to navigate to this URL
                     window.top.location.href = window.location.href;
+                    // Render nothing inside the iframe to prevent nested UI
                     return null; 
                 }
             }
@@ -219,9 +223,26 @@
                     .then(data => { logApiCall('/api/nsk/v2/token', 'POST', {}, data); setNavToken(data.data.token); setLoadingStage(""); });
             };
 
-            // --- CHANGED: REDIRECT TO CEBU SITE ---
             const handleRestart = () => {
-                window.location.href = "https://www.cebupacificair.com/";
+                // Clear the URL parameters (remove status=success, etc)
+                window.history.pushState({}, document.title, window.location.pathname);
+                
+                // Reset search state so the search form appears instead of results
+                setIsSearched(false);
+                
+                // --- CHANGES START HERE ---
+                
+                // 1. Force the airline to Cebu Pacific
+                setAirline(AIRLINE_CONFIGS.cebu);
+                
+                // 2. Set the view to 'airline' (The Search Page) instead of 'launcher'
+                setView('airline');
+                
+                // --- CHANGES END HERE ---
+
+                // Clear booking details
+                setPnr("");
+                setOrderId("");
             };
 
             useEffect(() => {
@@ -384,6 +405,8 @@
                 
                 logApiCall('https://sandbox.juspay.in/session', 'POST', data.sentPayload, { payment_link: data.url });
 
+                // --- CHANGED FOR IFRAME FLOW ---
+                // Instead of window.location.href, we set state and switch view
                 setPaymentUrl(data.url);
                 setView('payment'); 
                 setLoadingStage("");
@@ -425,7 +448,7 @@
                 </div>
             );
 
-            // --- PAYMENT VIEW (Full Page Iframe) ---
+            // --- NEW: PAYMENT VIEW (Full Page Iframe) ---
             if (view === 'payment') return (
                 <div className="w-full h-screen bg-slate-100 relative">
                      {/* Overlay Header/Controls for Iframe View */}
@@ -443,7 +466,7 @@
                     {/* The Payment Page Iframe */}
                     <iframe 
                         src={paymentUrl} 
-                        className="w-full h-full border-0 pt-14" 
+                        className="w-full h-full border-0 pt-14" // pt-14 pushes content down below header
                         title="Payment Page"
                     />
                 </div>
@@ -486,8 +509,7 @@
                         </div>
 
                         <div className="flex justify-center mt-8 gap-4">
-                            {/* Updated logic for Try Again as well if desired, but typically failure means retry internally */}
-                            <button onClick={() => { setIsSearched(false); setView('airline'); }} className="px-8 py-3 bg-slate-900 text-white rounded-full font-bold uppercase text-xs tracking-widest hover:bg-slate-800 transition-all shadow-lg">Try Again</button>
+                            <button onClick={handleRestart} className="px-8 py-3 bg-slate-900 text-white rounded-full font-bold uppercase text-xs tracking-widest hover:bg-slate-800 transition-all shadow-lg">Try Again</button>
                             <button onClick={() => setSuccessActiveTab('logs')} className="px-6 py-3 border border-slate-300 text-slate-600 rounded-full font-bold uppercase text-xs tracking-widest hover:bg-slate-100 transition-all">View Logs</button>
                         </div>
                     </div>
@@ -584,9 +606,8 @@
                                         </div>
 
                                          <div className="mt-8 pt-6 border-t border-slate-100 flex justify-end">
-                                            {/* CHANGED BUTTON TO REDIRECT TO CEBU SITE */}
                                             <button onClick={handleRestart} className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-blue-600 hover:text-blue-800 transition-colors">
-                                                <span>Go to Cebu Pacific Home →</span>
+                                                <span>+ Book Another Flight</span>
                                             </button>
                                         </div>
                                     </div>
@@ -711,6 +732,115 @@
                             </div>
                         )}
                     </div>
+                </div>
+            );
+
+            return (
+                <div className={`min-h-screen ${airline.id === 'vueling' ? 'vueling-dots font-["Ubuntu"]' : 'bg-[#f4f7f9]'} animate-in`}>
+                     {loadingStage && <LoadingOverlay />}
+                    {airline.id === 'cebu' ? (
+                        <div className="w-full bg-white relative z-50">
+                            <img src="./cebu-header.png" className="w-full h-auto object-cover" alt="Cebu Header" onClick={() => window.location.reload()} />
+                        </div>
+                    ) : (
+                        <header className="px-10 py-6 flex items-center justify-between bg-white border-b sticky top-0 z-50 shadow-sm" style={{ borderBottom: `4px solid ${airline.accent}`, backgroundColor: airline.primary }}>
+                            <img src={airline.logo} style={{ height: airline.logoH }} className="cursor-pointer" onClick={() => window.location.reload()} />
+                            <div className="flex items-center gap-4">
+                                <div className="font-bold text-sm text-black">👤 Guest</div>
+                            </div>
+                        </header>
+                    )}
+
+                    <div className={`${airline.hero} py-24 flex flex-col items-center`}>
+                        {airline.id === 'cebu' && <h1 className="text-8xl font-black italic text-white mb-10 drop-shadow-2xl uppercase tracking-tighter">TRAVEL NOW</h1>}
+                        <div className={airline.id === 'vueling' ? "vueling-pill w-full max-w-7xl flex p-2 mt-20" : "bg-white p-10 rounded-[2rem] shadow-2xl w-full max-w-7xl mt-10"}>
+                            <div className="flex flex-col gap-4 w-full text-black">
+                                <div className="flex justify-center -mt-6 mb-8">
+                                    <div className="flex bg-slate-100 p-1.5 rounded-full shadow-inner border border-slate-200">
+                                        <button
+                                            onClick={() => setCategory('flight')}
+                                            className={`flex items-center gap-2 px-8 py-3 rounded-full text-xs font-black uppercase tracking-widest transition-all duration-300 ${category === 'flight' ? 'bg-white text-blue-600 shadow-md transform scale-105' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'}`}
+                                        >
+                                            <span className="text-lg">✈</span> Flights
+                                        </button>
+                                        <button
+                                            onClick={() => setCategory('hotel')}
+                                            className={`flex items-center gap-2 px-8 py-3 rounded-full text-xs font-black uppercase tracking-widest transition-all duration-300 ${category === 'hotel' ? 'bg-white text-blue-600 shadow-md transform scale-105' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'}`}
+                                        >
+                                            <span className="text-lg">🏨</span> Hotels
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+                                    {category === 'flight' ? (
+                                        <>
+                                            <div className="px-4 border-r border-slate-100">
+                                                <label className="text-[10px] font-bold text-gray-400 block mb-1">FROM</label>
+                                                <select className="font-bold w-full focus:outline-none bg-transparent" value={search.from} onChange={(e) => setSearch({ ...search, from: e.target.value })}>
+                                                    {ORIGIN_OPTIONS.map(opt => <option key={opt.code} value={opt.code}>{opt.name}</option>)}
+                                                </select>
+                                            </div>
+                                            <div className="px-4 border-r border-slate-100">
+                                                <label className="text-[10px] font-bold text-gray-400 block mb-1">TO</label>
+                                                <select className="font-bold w-full focus:outline-none bg-transparent" value={search.to} onChange={(e) => setSearch({ ...search, to: e.target.value })}>
+                                                    {DESTINATION_OPTIONS.map(opt => <option key={opt.code} value={opt.code}>{opt.name}</option>)}
+                                                </select>
+                                            </div>
+                                            <div className="px-4 border-r border-slate-100">
+                                                <label className="text-[10px] font-bold text-gray-400 block mb-1">DATE</label>
+                                                <input type="date" className="font-bold w-full focus:outline-none bg-transparent text-sm" value={search.date} onChange={(e) => setSearch({ ...search, date: e.target.value })} />
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <div className="px-4 border-r border-slate-100 col-span-2">
+                                                <label className="text-[10px] font-bold text-gray-400 block mb-1">SELECT HOTEL</label>
+                                                <select className="font-bold w-full focus:outline-none bg-transparent" value={selectedHotel} onChange={(e) => setSelectedHotel(e.target.value)}>
+                                                    {HOTEL_OPTIONS.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
+                                                </select>
+                                            </div>
+                                            <div className="px-4 border-r border-slate-100">
+                                                <label className="text-[10px] font-bold text-gray-400 block mb-1">CHECK-IN</label>
+                                                <input type="date" className="font-bold w-full focus:outline-none bg-transparent text-sm" defaultValue="2026-03-01" />
+                                            </div>
+                                        </>
+                                    )}
+
+                                    <div className="px-4 border-r border-slate-100">
+                                        <label className="text-[10px] font-bold text-gray-400 block mb-1">LANGUAGE</label>
+                                        <select className="font-bold w-full focus:outline-none bg-transparent" value={language} onChange={(e) => setLanguage(e.target.value)}>
+                                            {LANGUAGE_OPTIONS.map(lang => <option key={lang.code} value={lang.code}>{lang.name}</option>)}
+                                        </select>
+                                    </div>
+                                    <button onClick={handleSearch} className={`py-4 text-white font-bold uppercase transition-all shadow-xl active:scale-95 ${airline.btnStyle}`} style={{ backgroundColor: airline.id === 'cebu' ? '#00AEEF' : '#ffdb00', color: airline.id === 'vueling' ? '#000' : '#fff' }}>Search</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {isSearched && (
+                        <div className="max-w-5xl mx-auto py-20 px-6 animate-in">
+                            <div className="bg-white rounded-[2.5rem] shadow-2xl p-14 flex items-center justify-between text-black border border-slate-100">
+                                <div className="flex flex-col">
+                                    <div className="text-4xl font-black italic tracking-tighter">
+                                        {category === 'flight' ? (
+                                            <span>{search.from} <span className="text-slate-200">✈</span> {search.to}</span>
+                                        ) : (
+                                            <span>{HOTEL_OPTIONS.find(h => h.id === selectedHotel)?.name}</span>
+                                        )}
+                                    </div>
+                                    <div className="text-slate-400 text-xs mt-2 font-bold uppercase tracking-widest">{new Date(search.date).toDateString()} | {category === 'flight' ? 'Non-Stop' : 'Standard Room'}</div>
+                                </div>
+                                <div className="text-right">
+                                    <div className="text-5xl font-black mb-6 tracking-tighter italic">
+                                        {getDisplayPrice()}
+                                    </div>
+                                    <button onClick={handlePay} className={`px-16 py-4 uppercase font-black shadow-2xl transition-all hover:scale-105 ${airline.btnStyle}`} style={{ backgroundColor: airline.id === 'cebu' ? '#FFF000' : '#ffdb00', color: '#000' }}>SELECT & PAY</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
         }
