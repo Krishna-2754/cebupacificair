@@ -359,7 +359,7 @@ app.post('/create-session', async (req, res) => {
             payload["udf1"] = scenario.udf;
         }
         if (scenario.autoCapture) {
-            payload["metadata.txns.auto_capture"] = false;
+            payload["metadata.txns.auto_capture"] = "false";
         }
         if (scenario.capCustId) {
             payload["metadata.CAPILLARY:customer_id"] = scenario.capCustId;
