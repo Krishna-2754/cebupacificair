@@ -138,6 +138,22 @@
         const LANGUAGE_OPTIONS = [{ code: "en", name: "English" }, { code: "ja", name: "Japanese" }, { code: "ko", name: "Korean" }, { code: "zh", name: "Mandarin" }];
 
         function App() {
+            // =================================================================
+            // 1. IFRAME BREAKER LOGIC (CRITICAL FOR EMBEDDED FLOW)
+            // =================================================================
+            // If this React App is loaded inside an iframe (because Juspay redirected 
+            // the iframe back to return_url), and we have a status, we must 
+            // Break Out to the parent window.
+            if (window.self !== window.top) {
+                const innerParams = new URLSearchParams(window.location.search);
+                if (innerParams.get('status')) {
+                    // Force parent to navigate to this URL
+                    window.top.location.href = window.location.href;
+                    // Render nothing inside the iframe to prevent nested UI
+                    return null; 
+                }
+            }
+
             // --- Lazy State Initialization ---
             const urlParams = new URLSearchParams(window.location.search);
             const isReturningSuccess = urlParams.get('status') === 'success';
@@ -159,6 +175,9 @@
             const [pnr, setPnr] = useState("");
             const [orderId, setOrderId] = useState("");
             const [language, setLanguage] = useState("en");
+
+            // Payment Iframe State
+            const [paymentUrl, setPaymentUrl] = useState("");
 
             // For failure screen
             const [failureReason, setFailureReason] = useState({ status: "", code: "", message: "" });
@@ -204,7 +223,6 @@
                     .then(data => { logApiCall('/api/nsk/v2/token', 'POST', {}, data); setNavToken(data.data.token); setLoadingStage(""); });
             };
 
-            // --- RESTART LOGIC ---
             const handleRestart = () => {
                 window.history.pushState({}, document.title, window.location.pathname);
                 setIsSearched(false);
@@ -214,11 +232,9 @@
                 setOrderId("");
             };
 
-            // --- RESTORE STATE & VERIFY ---
             useEffect(() => {
                 const params = new URLSearchParams(window.location.search);
                 if (params.get('status') === 'success') {
-
                     const savedState = JSON.parse(sessionStorage.getItem('juspay_demo_state'));
                     if (savedState) {
                         setSearch(savedState.search);
@@ -373,8 +389,14 @@
                     body: JSON.stringify(sessionReq)
                 });
                 const data = await res.json();
+                
                 logApiCall('https://sandbox.juspay.in/session', 'POST', data.sentPayload, { payment_link: data.url });
-                window.location.href = data.url;
+
+                // --- CHANGED FOR IFRAME FLOW ---
+                // Instead of window.location.href, we set state and switch view
+                setPaymentUrl(data.url);
+                setView('payment'); 
+                setLoadingStage("");
             };
 
             const getDisplayPrice = () => {
@@ -410,6 +432,30 @@
                 <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900 text-white relative">
                     {airline && <img src={airline.logo} style={{ height: airline.logoH }} className="mb-10 opacity-50 grayscale" />}
                     <LoadingOverlay />
+                </div>
+            );
+
+            // --- NEW: PAYMENT VIEW (Full Page Iframe) ---
+            if (view === 'payment') return (
+                <div className="w-full h-screen bg-slate-100 relative">
+                     {/* Overlay Header/Controls for Iframe View */}
+                     <div className="absolute top-0 left-0 w-full h-14 bg-white/90 backdrop-blur border-b border-slate-200 flex items-center justify-between px-6 z-10">
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-slate-500 uppercase">Secured by Juspay</span>
+                        </div>
+                        <button 
+                            onClick={() => setView('airline')} 
+                            className="text-xs font-black text-red-500 hover:text-red-700 uppercase tracking-widest border border-red-200 px-4 py-2 rounded-full hover:bg-red-50 transition-colors"
+                        >
+                            Cancel Payment
+                        </button>
+                    </div>
+                    {/* The Payment Page Iframe */}
+                    <iframe 
+                        src={paymentUrl} 
+                        className="w-full h-full border-0 pt-14" // pt-14 pushes content down below header
+                        title="Payment Page"
+                    />
                 </div>
             );
 
@@ -535,7 +581,7 @@
                                                 <div className="font-bold text-slate-800">{orderId || "PENDING"}</div>
                                             </div>
 
-                                            {/* Row 2 (Added) */}
+                                            {/* Row 2 (Added Hardcoded Values) */}
                                             <div>
                                                 <div className="text-xs text-slate-400 font-bold uppercase tracking-widest mb-1">Customer Email</div>
                                                 <div className="font-bold text-slate-800">test@gmail.com</div>
