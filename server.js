@@ -158,10 +158,10 @@ const SHARED_ADD_ON_RULES = [
 ];
 
 const REWARD_RULES = [{
-  "conversion_ratio": 1, "flow_type": "BURN", "max_redeemable_points": 10000,
-  "main_redeemable_points": 10000, "payment_method": "CAPILLARY_REWARD",
-  "reward_buckets": [{ "cash_eq": "10000", "id": "6fae5307", "points": "10000" }],
-  "user_balance": 10000
+  "conversion_ratio": 1, "flow_type": "BURN", "max_redeemable_points": 2500,
+  "man_redeemable_points": 2500, "payment_method": "CAPILLARY_REWARD",
+  "reward_buckets": [{ "cash_eq": "2500", "id": "6fae5307", "points": "2500" }],
+  "user_balance": 2500
 }];
 
 const PAYMENT_RULES_SIN_MNL = {
@@ -212,7 +212,7 @@ const PAYMENT_RULES_SIN_MNL = {
 
 const FLIGHT_ROUTES = {
   "MNL_SUG": { amount: "190", currency: "USD", mti: MTI_MNL_SUG, udf10: "NEW_Ios", paymentFilter: SHARED_PAYMENT_FILTER_MNL_SUG, addOnRules: SHARED_ADD_ON_RULES , integrity: true, refId : "FLIGHT", udf1: "Manila",udf2: "Surigao",udf3: "Desktop", customerId: "Test123"},
-  "SIN_MNL": { amount: "9500", currency: "PHP", mti: MTI_SIN_MNL, udf10: "NEW_Ios", paymentFilter: SHARED_PAYMENT_FILTER_MNL_SUG, addOnRules: [], riskProvider: "JUSPAYFRM", capCustId: "000014464",integrity: true,refId : "FLIGHT" , udf1: "Singapore",udf2: "Manila",udf3: "Android", baddress: "PH", customerId: "Test123"},
+  "SIN_MNL": { amount: "15000", currency: "PHP", mti: MTI_SIN_MNL, udf10: "NEW_Ios", paymentFilter: SHARED_PAYMENT_FILTER_MNL_SUG, addOnRules: [], riskProvider: "JUSPAYFRM", capCustId: "000014464",integrity: true,refId : "FLIGHT" , udf1: "Singapore",udf2: "Manila",udf3: "Android", baddress: "PH", customerId: "Test123"},
   "MNL_LAO": { amount: "110", currency: "SGD", mti: MTI_MNL_LAO, udf10: "NEW_Ios", paymentFilter: SHARED_PAYMENT_FILTER_MNL_LAO, addOnRules: [] , paymentRules: PAYMENT_RULES_SIN_MNL, integrity: true,refId : "FLIGHT", udf1: "Manila",udf2: "Laoag",udf3: "mWeb", customerId: "Test123"},
   "MNL_KUL": { amount: "225", currency: "USD", mti: MTI_MNL_KUL, udf10: "NEW_Ios", paymentFilter: SHARED_PAYMENT_FILTER_MNL_KUL, addOnRules: SHARED_ADD_ON_RULES ,cardinalRef: "auth_cardinal", baddress: "US", integrity: true, refId : "AUXILIARY", udf1: "Manila",udf2: "Kuala Lampur",udf3: "iOS", customerId: "Test123"},
   "MNL_SIN": { amount: "340", currency: "SGD", mti: MTI_MNL_SIN, udf10: "NEW_Ios", paymentFilter: SHARED_PAYMENT_FILTER_MNL_SUG, addOnRules: SHARED_ADD_ON_RULES, udf: "AUXILLARY" , baddress: "SG", paymentRules: PAYMENT_RULES_SIN_MNL, integrity: true,refId : "FLIGHT", udf1: "Manila",udf2: "Singapore",udf3: "Desktop", customerId: "Test123", autoCapture: true},
