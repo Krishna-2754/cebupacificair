@@ -159,7 +159,7 @@ const SHARED_ADD_ON_RULES = [
 
 const REWARD_RULES = [{
   "conversion_ratio": 1, "flow_type": "BURN", "max_redeemable_points": 2500,
-  "man_redeemable_points": 2500, "payment_method": "CAPILLARY_REWARD",
+  "min_redeemable_points": 2500, "payment_method": "CAPILLARY_REWARD",
   "reward_buckets": [{ "cash_eq": "2500", "id": "6fae5307", "points": "2500" }],
   "user_balance": 2500
 }];
